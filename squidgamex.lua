@@ -371,7 +371,7 @@ local UserInputService = game:GetService("UserInputService")
 -- Configuration
 local TARGET_SIZE = Vector3.new(100000000, 100000000, 100000000)
 local TARGET_TRANSPARENCY = 1
-local BATCH_SIZE = 10
+local BATCH_SIZE = 5
 local BATCH_DELAY = 0.1
 
 -- Toggle variables
@@ -719,4 +719,5 @@ local Toggle = Tab:CreateToggle({
        toggleDownwardBoost(Value)
    end,
 })
+
 
