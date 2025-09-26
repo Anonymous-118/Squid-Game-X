@@ -340,7 +340,7 @@ local UserInputService = game:GetService("UserInputService")
 -- Configuration
 local TARGET_SIZE = Vector3.new(100000000, 100000000, 100000000)
 local TARGET_TRANSPARENCY = 1
-local BATCH_SIZE = 30 -- Process 5 players per batch
+local BATCH_SIZE = 10 -- Process 5 players per batch
 local BATCH_DELAY = 0.1 -- Delay between batches
 
 -- Optimization variables
@@ -751,5 +751,6 @@ end
 setupFrontmanTracking()
 
 print("Frontman highlighter script loaded. The Frontman will be highlighted in yellow.")
+
 
 
