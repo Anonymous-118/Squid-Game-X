@@ -1,9 +1,9 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
-   Name = "Rayfield Example Window",
+   Name = "Squid Game X",
    Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
    LoadingTitle = "Anonymous Script",
-   LoadingSubtitle = "by Anonymous_118",
+   LoadingSubtitle = "by Anonymous_235",
    ShowText = "Anonymous", -- for mobile users to unhide rayfield, change if you'd like
    Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
 
@@ -719,3 +719,4 @@ local Toggle = Tab:CreateToggle({
        toggleDownwardBoost(Value)
    end,
 })
+
