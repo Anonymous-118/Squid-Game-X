@@ -2,4 +2,310 @@
 
 
 
+local Tab = Window:CreateTab("Detective", 4483362458) -- Title, Image
+
+local Section = Tab:CreateSection("press it again if its stucked or stopped")
+-- Add this to your existing Rayfield GUI in the Detective tab
+local Button = Tab:CreateButton({
+   Name = "Auto Evidence Teleport",
+   Callback = function()
+       
+       -- Squid Game X Evidence Auto Collector - COMPLETE FIX
+       local Players = game:GetService("Players")
+       local Workspace = game:GetService("Workspace")
+       local RunService = game:GetService("RunService")
+       local LocalPlayer = Players.LocalPlayer
+
+       -- Evidence rarity colors
+       local RARITY_COLORS = {
+           Common = Color3.fromRGB(173, 216, 230),    -- Light Blue
+           Rare = Color3.fromRGB(0, 0, 255),          -- Blue
+           Epic = Color3.fromRGB(128, 0, 128),        -- Purple
+           Legendary = Color3.fromRGB(255, 215, 0)    -- Gold
+       }
+
+       local highlights = {}
+       local collecting = false
+       
+       -- Safely get evidence folder
+       local evidenceFolder
+       if Workspace:FindFirstChild("Data") and Workspace.Data:FindFirstChild("Detective") then
+           evidenceFolder = Workspace.Data.Detective.Evidence.Instances
+       else
+           Rayfield:Notify({
+               Title = "Error",
+               Content = "Evidence folder not found! Are you in the right game?",
+               Duration = 5
+           })
+           return
+       end
+
+       -- Function to create notification
+       local function notify(message)
+           Rayfield:Notify({
+               Title = "Evidence Collector",
+               Content = message,
+               Duration = 3
+           })
+       end
+
+       -- Function to highlight ALL evidence
+       local function highlightAllEvidence()
+           for _, evidence in pairs(evidenceFolder:GetChildren()) do
+               if evidence:IsA("Model") and not highlights[evidence] then
+                   local pPart = evidence:FindFirstChild("PPart")
+                   if pPart then
+                       -- Get rarity
+                       local rarity = "Common"
+                       local rarityValue = evidence:FindFirstChild("Rarity")
+                       if rarityValue and rarityValue:IsA("StringValue") then
+                           rarity = rarityValue.Value
+                       end
+                       
+                       local color = RARITY_COLORS[rarity] or RARITY_COLORS.Common
+                       
+                       -- Create highlight
+                       local highlight = Instance.new("Highlight")
+                       highlight.FillColor = color
+                       highlight.OutlineColor = color
+                       highlight.FillTransparency = 0.3
+                       highlight.OutlineTransparency = 0
+                       highlight.Adornee = pPart
+                       highlight.Parent = evidence
+                       
+                       -- Create billboard GUI
+                       local billboard = Instance.new("BillboardGui")
+                       billboard.Size = UDim2.new(0, 100, 0, 40)
+                       billboard.StudsOffset = Vector3.new(0, 4, 0)
+                       billboard.AlwaysOnTop = true
+                       billboard.Adornee = pPart
+                       billboard.Parent = evidence
+                       
+                       local label = Instance.new("TextLabel")
+                       label.Size = UDim2.new(1, 0, 1, 0)
+                       label.BackgroundTransparency = 1
+                       label.Text = "Evidence"
+                       label.TextColor3 = color
+                       label.TextScaled = true
+                       label.Font = Enum.Font.GothamBold
+                       label.TextStrokeTransparency = 0
+                       label.TextStrokeColor3 = Color3.new(0, 0, 0)
+                       label.Parent = billboard
+                       
+                       highlights[evidence] = {highlight, billboard}
+                   end
+               end
+           end
+       end
+
+       -- Function to collect evidence by triggering proximity prompt
+       local function collectEvidence(evidence)
+           if not evidence or not evidence.Parent then return false end
+           
+           local pPart = evidence:FindFirstChild("PPart")
+           if not pPart then return false end
+           
+           local prompt = pPart:FindFirstChildOfClass("ProximityPrompt")
+           if not prompt then return false end
+           
+           -- Trigger the proximity prompt
+           firesignal(prompt.Triggered)
+           return true
+       end
+
+       -- Function to teleport to evidence
+       local function teleportToEvidence(evidence)
+           local character = LocalPlayer.Character
+           if not character or not character.PrimaryPart then 
+               return false 
+           end
+           
+           local pPart = evidence:FindFirstChild("PPart")
+           if not pPart then 
+               return false 
+           end
+           
+           -- Set character position directly
+           character:SetPrimaryPartCFrame(CFrame.new(pPart.Position + Vector3.new(0, 3, 0)))
+           wait(0.2)
+           
+           return true
+       end
+
+       -- Function to get all current valid evidence
+       local function getCurrentEvidence()
+           local evidenceList = {}
+           
+           for _, evidence in pairs(evidenceFolder:GetChildren()) do
+               if evidence:IsA("Model") and evidence:FindFirstChild("PPart") then
+                   table.insert(evidenceList, evidence)
+               end
+           end
+           
+           return evidenceList
+       end
+
+       -- Highlight loop (runs continuously)
+       local function startHighlightLoop()
+           spawn(function()
+               while true do
+                   if LocalPlayer:GetAttribute("IsDetective") then
+                       highlightAllEvidence()
+                   else
+                       -- Clean up highlights if not detective
+                       for evidence, highlightData in pairs(highlights) do
+                           if highlightData[1] then highlightData[1]:Destroy() end
+                           if highlightData[2] then highlightData[2]:Destroy() end
+                       end
+                       highlights = {}
+                   end
+                   
+                   -- Clean up highlights for collected evidence
+                   for evidence, highlightData in pairs(highlights) do
+                       if not evidence or not evidence.Parent then
+                           if highlightData[1] then highlightData[1]:Destroy() end
+                           if highlightData[2] then highlightData[2]:Destroy() end
+                           highlights[evidence] = nil
+                       end
+                   end
+                   
+                   wait(0.5)
+               end
+           end)
+       end
+
+       -- Main collection loop
+       local function startAutoCollect()
+           if collecting then
+               notify("Already collecting evidence!")
+               return
+           end
+           
+           if not LocalPlayer:GetAttribute("IsDetective") then
+               notify("You are not a detective!")
+               return
+           end
+           
+           collecting = true
+           notify("Starting evidence collection loop...")
+           
+           spawn(function()
+               while collecting and RunService.Heartbeat:Wait() do
+                   -- Get current valid evidence
+                   local currentEvidence = getCurrentEvidence()
+                   
+                   if #currentEvidence > 0 then
+                       notify("Found " .. #currentEvidence .. " evidence. Starting teleport loop...")
+                       
+                       -- Loop through each evidence
+                       for i, evidence in ipairs(currentEvidence) do
+                           if not collecting then break end
+                           
+                           -- Check if evidence still exists and is valid
+                           if evidence and evidence.Parent and evidence:FindFirstChild("PPart") then
+                               notify("Teleporting to evidence " .. i .. "/" .. #currentEvidence)
+                               
+                               -- Teleport to evidence
+                               if teleportToEvidence(evidence) then
+                                   -- Wait for teleport to complete
+                                   wait(1)
+                                   
+                                   -- Try to collect
+                                   if collectEvidence(evidence) then
+                                       notify("✓ Collected evidence " .. i .. "/" .. #currentEvidence)
+                                       wait(1)
+                                   else
+                                       notify("✗ Failed to collect evidence " .. i)
+                                       wait(0.5)
+                                   end
+                               else
+                                   notify("✗ Failed to teleport to evidence " .. i)
+                               end
+                           else
+                               notify("Evidence " .. i .. " no longer exists, skipping...")
+                           end
+                           
+                           -- Small delay between evidence
+                           wait(0.5)
+                           
+                           -- Break if we should stop
+                           if not collecting then break end
+                       end
+                       
+                       notify("Completed one loop. Checking for new evidence...")
+                       wait(2)
+                   else
+                       -- No evidence found, wait and check again
+                       notify("No evidence found. Waiting for new evidence...")
+                       wait(3)
+                   end
+               end
+               
+               notify("Evidence collection stopped.")
+           end)
+       end
+
+       -- Function to stop collection
+       local function stopAutoCollect()
+           collecting = false
+           notify("Stopping evidence collection...")
+       end
+
+       -- Listen for new evidence
+       evidenceFolder.ChildAdded:Connect(function(child)
+           if child:IsA("Model") then
+               if collecting then
+                   notify("New evidence detected! Adding to collection loop...")
+               end
+           end
+       end)
+
+       -- Clean up highlights when evidence is removed
+       evidenceFolder.ChildRemoved:Connect(function(child)
+           if highlights[child] then
+               for _, obj in pairs(highlights[child]) do
+                   if obj then
+                       obj:Destroy()
+                   end
+               end
+               highlights[child] = nil
+           end
+       end)
+
+       -- Start highlight loop immediately
+       startHighlightLoop()
+
+       -- Auto start collection when player becomes detective
+       LocalPlayer:GetAttributeChangedSignal("IsDetective"):Connect(function()
+           if LocalPlayer:GetAttribute("IsDetective") then
+               wait(2)
+               notify("Detective mode activated. Starting auto collector...")
+               startAutoCollect()
+           else
+               stopAutoCollect()
+           end
+       end)
+
+       -- Initialize if already detective
+       if LocalPlayer:GetAttribute("IsDetective") then
+           wait(3)
+           startAutoCollect()
+       end
+
+       -- Export functions to global scope for manual control
+       getgenv().StartEvidenceCollect = startAutoCollect
+       getgenv().StopEvidenceCollect = stopAutoCollect
+
+       notify("Evidence Collector Loaded! It will auto-start when you become detective.")
+       
+   end,
+})
+
+local TeleportButton = Tab:CreateButton({
+   Name = "Teleport To Boat",
+   Callback = function()
+    game.Players.LocalPlayer.Character:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(-2908.92, -786.00, 15485.87)
+   end,
+})
+
 
